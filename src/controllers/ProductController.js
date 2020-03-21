@@ -29,36 +29,79 @@ module.exports = {
      * @param {*} response 
      */
     async create(request, response) {
-        const { name, description, price, category_id } = request.body;
+        const token = request.get('auth-token');
 
-        const { error, value } = schema.validate({ name, description, price, category_id });
-
-        if (error)
+        if (!token)
             return response
                 .status(400)
                 .json({
-                    message: 'Bad request',
-                    details: {
-                        error,
-                        value
-                    }
+                    message: 'Authentication token is required'
                 });
 
-        const product = await Product.create({
-            name,
-            description,
-            price,
-            category_id
-        });
+        axios.get('http://localhost:5000/auth', { headers: { 'auth-token': token } })
+            .then(async apiResponse => {
+                const { name, description, price, category_id } = request.body;
 
-        return response
-            .status(201)
-            .json({
-                message: 'Product created',
-                details: {
-                    product
-                }
+                const { error, value } = schema.validate({ name, description, price, category_id });
+
+                if (error)
+                    return response
+                        .status(400)
+                        .json({
+                            message: 'Bad request',
+                            details: {
+                                error,
+                                value
+                            }
+                        });
+
+                const product = await Product.create({
+                    name,
+                    description,
+                    price,
+                    category_id
+                });
+
+                return response
+                    .status(201)
+                    .json(product);
+            })
+            .catch(async error => {
+                return response
+                    .status(error.response.status)
+                    .json({ message: error.response.data.message });
             });
+
+        // const { name, description, price, category_id } = request.body;
+
+        // const { error, value } = schema.validate({ name, description, price, category_id });
+
+        // if (error)
+        //     return response
+        //         .status(400)
+        //         .json({
+        //             message: 'Bad request',
+        //             details: {
+        //                 error,
+        //                 value
+        //             }
+        //         });
+
+        // const product = await Product.create({
+        //     name,
+        //     description,
+        //     price,
+        //     category_id
+        // });
+
+        // return response
+        //     .status(201)
+        //     .json({
+        //         message: 'Product created',
+        //         details: {
+        //             product
+        //         }
+        //     });
     },
 
     /**
@@ -68,31 +111,67 @@ module.exports = {
      * @param {*} response 
      */
     async delete(request, response) {
-        const { id } = request.params;
+        const token = request.get('auth-token');
 
-        const product = await Product.findByPk(id);
-
-        if (!product)
+        if (!token)
             return response
-                .status(200)
+                .status(400)
                 .json({
-                    message: 'Product not found'
+                    message: 'Authentication token required'
                 });
 
-        await Product.destroy({
-            where: {
-                id
-            }
-        });
+        axios.get('http://localhost:5000/auth', { headers: { 'auth-token': token } })
+            .then(async apiResponse => {
+                const { id } = request.params;
 
-        return response
-            .status(200)
-            .json({
-                message: 'Product removed',
-                details: {
-                    product
-                }
+                const product = await Product.findByPk(id);
+
+                if (!product)
+                    return response
+                        .status(404)
+                        .json({
+                            message: 'Product not found'
+                        });
+
+                await Product.destroy({ where: { id } });
+
+                return response
+                    .status(200)
+                    .json(product);
+            })
+            .catch(error => {
+                return response
+                    .status(error.response.status)
+                    .json({
+                        message: error.response.data.message
+                    });
             });
+
+        //const { id } = request.params;
+
+        //const product = await Product.findByPk(id);
+
+        // if (!product)
+        //     return response
+        //         .status(200)
+        //         .json({
+        //             message: 'Product not found'
+        //         });
+
+        // await Product.destroy({
+        //     where: {
+        //         id
+        //     }
+        // });
+
+        // return response
+        //     .status(200)
+        //     .json({
+        //         message: 'Product removed',
+        //         details: {
+        //             product
+        //         }
+        //     });
     },
 
     /**
@@ -142,34 +221,89 @@ module.exports = {
      * @param {*} response 
      */
     async update(request, response) {
-        const { id } = request.params;
-        const { name, description, price, category_id } = request.body;
+        const token = request.get('auth-token');
 
-        const product = await Product.findByPk(id);
-
-        if (!product)
+        if (!token)
             return response
-                .status(404)
+                .status(400)
                 .json({
-                    message: 'Product not found'
+                    message: 'Authentication token is required'
                 });
 
-        await Product.update({
-            name,
-            description,
-            price,
-            category_id
-        }, {
-            where: {
-                id
-            }
-        });
+        axios.get('http://localhost:5000/auth', { headers: { 'auth-token': token } })
+            .then(async apiResponse => {
+                const { id } = request.params;
+                const { name, description, price, category_id } = request.body;
 
-        return response
-            .status(200)
-            .json({
-                message: 'Product updated',
-                details: product
+                const { error, value } = schema.validate({ name, description, price, category_id });
+
+                if (error)
+                    return response
+                        .status(400)
+                        .json({
+                            message: 'Bad request',
+                            details: {
+                                error,
+                                value
+                            }
+                        });
+
+                const product = await Product.findByPk(id);
+
+                if (!product)
+                    return response
+                        .status(404)
+                        .json({
+                            message: 'Product not found'
+                        });
+
+                await Product.update({
+                    name,
+                    description,
+                    price,
+                    category_id
+                }, {
+                    where: { id }
+                });
+
+                return response
+                    .status(200)
+                    .json(product);
+            })
+            .catch(async error => {
+                return response
+                    .status(error.response.status)
+                    .json(error.response.data.message);
             });
+
+        // const { id } = request.params;
+        // const { name, description, price, category_id } = request.body;
+
+        // const product = await Product.findByPk(id);
+
+        // if (!product)
+        //     return response
+        //         .status(404)
+        //         .json({
+        //             message: 'Product not found'
+        //         });
+
+        // await Product.update({
+        //     name,
+        //     description,
+        //     price,
+        //     category_id
+        // }, {
+        //     where: {
+        //         id
+        //     }
+        // });
+
+        // return response
+        //     .status(200)
+        //     .json({
+        //         message: 'Product updated',
+        //         details: product
+        //     });
     }
 };
